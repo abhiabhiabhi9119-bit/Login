@@ -38,16 +38,6 @@ def home():
         <div class="box">
             <h2>✅ Bot is ONLINE</h2>
             <p>👥 Users: {len(users_db)}</p>
-            <p>📡 Channel: Connected</p>
-        </div>
-        <div class="box">
-            <h3>Admin Commands</h3>
-            <p>/start - Main Menu</p>
-            <p>/users - All Users</p>
-            <p>/msg mobile text - Send Message</p>
-            <p>/broadcast text - Send to All</p>
-            <p>/changepass mobile pass - Change Password</p>
-            <p>/delete mobile - Delete User</p>
         </div>
     </body>
     </html>
@@ -69,12 +59,11 @@ def start(update: Update, context: CallbackContext):
     if user.id == ADMIN_ID:
         keyboard = [
             [InlineKeyboardButton("👥 All Users", callback_data="users")],
-            [InlineKeyboardButton("📊 Stats", callback_data="stats")],
-            [InlineKeyboardButton("📢 Broadcast Help", callback_data="bcast")]
+            [InlineKeyboardButton("📊 Stats", callback_data="stats")]
         ]
         update.message.reply_text(
             f"👑 *ADMIN PANEL*\n\n"
-            f"Hello {user.first_name}!\n\n"
+            f"Hello {user.first_name}!\n"
             f"📊 Users: {len(users_db)}\n"
             f"🤖 Status: Online",
             reply_markup=InlineKeyboardMarkup(keyboard),
@@ -83,14 +72,13 @@ def start(update: Update, context: CallbackContext):
     else:
         update.message.reply_text(
             f"🤖 *GyanPi Chat Bot*\n\n"
-            f"Welcome {user.first_name}!\n\n"
-            f"Use our Web App to register and chat with friends!",
+            f"Welcome {user.first_name}!\n"
+            f"Use Web App to chat!",
             parse_mode='Markdown'
         )
 
 def users_cmd(update: Update, context: CallbackContext):
     if update.effective_user.id != ADMIN_ID:
-        update.message.reply_text("❌ Admin only!")
         return
     
     if not users_db:
@@ -98,69 +86,54 @@ def users_cmd(update: Update, context: CallbackContext):
         return
     
     msg = "👥 *ALL USERS*\n\n"
-    for i, (mobile, data) in enumerate(users_db.items(), 1):
-        msg += f"{i}. `{mobile}`\n"
-        msg += f"   Name: {data.get('name', 'N/A')}\n"
-        msg += f"   Pass: `{data.get('pass', 'N/A')}`\n\n"
+    for mobile, data in users_db.items():
+        msg += f"📱 `{mobile}`\n👤 {data.get('name')}\n🔑 `{data.get('pass')}`\n\n"
     
     update.message.reply_text(msg, parse_mode='Markdown')
 
 def msg_cmd(update: Update, context: CallbackContext):
     if update.effective_user.id != ADMIN_ID:
-        update.message.reply_text("❌ Admin only!")
         return
     
     if len(context.args) < 2:
-        update.message.reply_text("Usage: /msg 9876543210 Hello User")
+        update.message.reply_text("Usage: /msg 9876543210 Hello")
         return
     
     mobile = context.args[0]
     message = " ".join(context.args[1:])
-    
-    try:
-        context.bot.send_message(CHANNEL_ID, f"ADMIN_MSG|{mobile}|{message}")
-        update.message.reply_text(f"✅ Sent to {mobile}")
-    except Exception as e:
-        update.message.reply_text(f"❌ Error: {e}")
+    context.bot.send_message(CHANNEL_ID, f"ADMIN_MSG|{mobile}|{message}")
+    update.message.reply_text(f"✅ Sent to {mobile}")
 
 def broadcast_cmd(update: Update, context: CallbackContext):
     if update.effective_user.id != ADMIN_ID:
-        update.message.reply_text("❌ Admin only!")
         return
     
     if not context.args:
-        update.message.reply_text("Usage: /broadcast Hello Everyone!")
+        update.message.reply_text("Usage: /broadcast Hello All!")
         return
     
     message = " ".join(context.args)
-    
-    try:
-        context.bot.send_message(CHANNEL_ID, f"BROADCAST|{message}")
-        update.message.reply_text(f"📢 Broadcast sent!")
-    except Exception as e:
-        update.message.reply_text(f"❌ Error: {e}")
+    context.bot.send_message(CHANNEL_ID, f"BROADCAST|{message}")
+    update.message.reply_text("📢 Broadcast sent!")
 
 def changepass_cmd(update: Update, context: CallbackContext):
     if update.effective_user.id != ADMIN_ID:
-        update.message.reply_text("❌ Admin only!")
         return
     
     if len(context.args) != 2:
-        update.message.reply_text("Usage: /changepass 9876543210 newpass123")
+        update.message.reply_text("Usage: /changepass 9876543210 newpass")
         return
     
     mobile, newpass = context.args
-    
     if mobile in users_db:
         users_db[mobile]['pass'] = newpass
         context.bot.send_message(CHANNEL_ID, f"PASS_CHANGE|{mobile}|{newpass}")
-        update.message.reply_text(f"✅ Password changed for {mobile}")
+        update.message.reply_text(f"✅ Changed for {mobile}")
     else:
-        update.message.reply_text(f"❌ User not found!")
+        update.message.reply_text("❌ User not found!")
 
 def delete_cmd(update: Update, context: CallbackContext):
     if update.effective_user.id != ADMIN_ID:
-        update.message.reply_text("❌ Admin only!")
         return
     
     if not context.args:
@@ -168,102 +141,69 @@ def delete_cmd(update: Update, context: CallbackContext):
         return
     
     mobile = context.args[0]
-    
     if mobile in users_db:
         del users_db[mobile]
         context.bot.send_message(CHANNEL_ID, f"USER_DELETE|{mobile}")
-        update.message.reply_text(f"✅ Deleted {mobile}")
+        update.message.reply_text(f"✅ Deleted!")
     else:
-        update.message.reply_text(f"❌ Not found!")
+        update.message.reply_text("❌ Not found!")
 
 def button(update: Update, context: CallbackContext):
     query = update.callback_query
     query.answer()
-    data = query.data
     
-    if data == "users":
+    if query.data == "users":
         if not users_db:
-            query.edit_message_text("📭 No users yet!")
+            query.edit_message_text("📭 No users!")
             return
         msg = "👥 *USERS*\n\n"
         for m, d in users_db.items():
-            msg += f"• `{m}` - {d.get('name','N/A')}\n"
+            msg += f"• `{m}` - {d.get('name')}\n"
         keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="back")]]
         query.edit_message_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
     
-    elif data == "stats":
+    elif query.data == "stats":
         keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="back")]]
-        query.edit_message_text(
-            f"📊 *STATS*\n\n👥 Users: {len(users_db)}\n🤖 Bot: Online",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
+        query.edit_message_text(f"📊 Users: {len(users_db)}", reply_markup=InlineKeyboardMarkup(keyboard))
     
-    elif data == "bcast":
-        keyboard = [[InlineKeyboardButton("🔙 Back", callback_data="back")]]
-        query.edit_message_text(
-            "📢 *BROADCAST*\n\nUse: `/broadcast Your message`",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
-    
-    elif data == "back":
+    elif query.data == "back":
         keyboard = [
             [InlineKeyboardButton("👥 All Users", callback_data="users")],
-            [InlineKeyboardButton("📊 Stats", callback_data="stats")],
-            [InlineKeyboardButton("📢 Broadcast Help", callback_data="bcast")]
+            [InlineKeyboardButton("📊 Stats", callback_data="stats")]
         ]
-        query.edit_message_text(
-            f"👑 *ADMIN PANEL*\n\n📊 Users: {len(users_db)}\n🤖 Status: Online",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode='Markdown'
-        )
+        query.edit_message_text(f"👑 *ADMIN PANEL*\n\n📊 Users: {len(users_db)}", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
 
 def channel_msg(update: Update, context: CallbackContext):
-    if not update.channel_post:
-        return
-    if update.channel_post.chat.id != CHANNEL_ID:
+    if not update.channel_post or update.channel_post.chat.id != CHANNEL_ID:
         return
     
     text = update.channel_post.text or ""
     parts = text.split("|")
-    cmd = parts[0] if parts else ""
-    
-    logger.info(f"Channel: {text[:50]}")
+    cmd = parts[0]
     
     if cmd == "REG" and len(parts) >= 4:
         name, mobile, pwd = parts[1], parts[2], parts[3]
         users_db[mobile] = {"name": name, "pass": pwd, "friends": [], "requests": []}
         logger.info(f"New user: {name}")
-        try:
-            context.bot.send_message(ADMIN_ID, f"🆕 New User!\n\n👤 {name}\n📱 `{mobile}`", parse_mode='Markdown')
-        except:
-            pass
+        context.bot.send_message(ADMIN_ID, f"🆕 New User!\n👤 {name}\n📱 {mobile}")
     
     elif cmd == "FREQ" and len(parts) >= 3:
         sender, target = parts[1], parts[2]
         if target in users_db:
-            if sender not in users_db[target].get('requests', []):
-                users_db[target].setdefault('requests', []).append(sender)
+            users_db[target].setdefault('requests', []).append(sender)
     
     elif cmd == "FACC" and len(parts) >= 3:
-        accepter, requester = parts[1], parts[2]
-        if accepter in users_db:
-            users_db[accepter].setdefault('friends', []).append(requester)
-        if requester in users_db:
-            users_db[requester].setdefault('friends', []).append(accepter)
-
-def error(update, context):
-    logger.error(f"Error: {context.error}")
+        a, r = parts[1], parts[2]
+        if a in users_db:
+            users_db[a].setdefault('friends', []).append(r)
+        if r in users_db:
+            users_db[r].setdefault('friends', []).append(a)
 
 # ================= MAIN =================
 def main():
-    # Flask thread
-    t = threading.Thread(target=run_flask, daemon=True)
-    t.start()
+    threading.Thread(target=run_flask, daemon=True).start()
     logger.info("Flask started")
     
-    # Bot
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
     
@@ -275,7 +215,6 @@ def main():
     dp.add_handler(CommandHandler("delete", delete_cmd))
     dp.add_handler(CallbackQueryHandler(button))
     dp.add_handler(MessageHandler(Filters.chat_type.channel, channel_msg))
-    dp.add_error_handler(error)
     
     logger.info("🚀 Bot Started!")
     updater.start_polling(drop_pending_updates=True)
